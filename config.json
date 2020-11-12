@@ -6,5 +6,6 @@
 		"database": null
 	},
 	"prefix": "++",
+	"timeout": 1250,
 	"token": null
 }
