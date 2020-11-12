@@ -28,7 +28,7 @@ bot.on("ready", async () => {
 function resolveEmoteTagFromId(id) {
 	emote = bot.emojis.cache.filter(x => x.id == id).first()
 	if(!emote) return "Unavailable Emote"
-	if(!emote.animeted) {
+	if(!emote.animated) {
 	tag = `<:${emote.name}:${id}>`
 	} else tag = `<a:${emote.name}:${id}>`
 	emote = tag
