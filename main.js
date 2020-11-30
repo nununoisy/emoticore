@@ -9,9 +9,10 @@ var con = mysql.createConnection({
   database: cfg.sql.database
 });
 prefix = cfg.prefix
+timeout = cfg.timeout
 
 lastcommand = Date.now()
-timeout = cfg.timeout
+recent = []
 
 con.connect(err => {if(err) throw err; console.log("Connected to database")})
 
@@ -71,6 +72,7 @@ function cleanupDuplicates(table, value) {
 }
 
 bot.on("message", message => {
+	if(message.author.id == bot.user.id) return
 	msgArray = message.content.split(" ")
 	
 	for(i=0;i<msgArray.length;i++) {
@@ -90,6 +92,7 @@ bot.on("message", message => {
 		}
 	}
 	
+	//Emote uses
 	if(message.content.startsWith(prefix + "uses")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
@@ -108,12 +111,13 @@ bot.on("message", message => {
 		} else return
 		
 		con.query(`SELECT * FROM emotes WHERE id = '${id}'`, (err,rows) => {
-			if(!rows[0]) return message.reply("I haven't logged that emote yet.")
+			if(!rows[0]) return message.reply("I haven't logged that emote yet. (this likely means that it has never been used)")
 			message.reply(`${resolveEmoteTagFromId(id)} has been used ${rows[0].uses} times. (${rows[0].messages} times in messages, ${rows[0].reacts} times as a reaction)`)
 		})
 		return
 	}
 	
+	//User stats
 	if(message.content.startsWith(prefix + "stats")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
@@ -126,50 +130,85 @@ bot.on("message", message => {
 		return
 	}
 	
+	//Help
 	if(message.content.startsWith(prefix + "help")) {
-		message.reply("++uses [emote] to get info about an emote, ++stats [user, leave blank for yourself] to get info about a user, ++leaderboard to check leaderboards, ++random to get a random emote or ++user for a random user")
+		message.reply("++uses [emote] to get info about an emote\n++stats [user, leave blank for yourself] to get info about a user\n++leaderboard to check leaderboards\n++random to get a random emote\n++user for a random user")
 	}
 	
-	if(message.content.startsWith(prefix + "leaderboard")) {
+	//Leaderboards
+	if(message.content.startsWith(prefix + "leaderboard")||message.content.startsWith(prefix + "lb")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
 		if(!msgArray[1]) return message.reply("Which leaderboard would you like to see?\nmost-used - most used emotes\nmost-reacts-sent - most reactions sent\nmost-reacts-received - most reactions received\ntype `++leaderboard [your choice]`")
 		
-		if(msgArray[1] == "most-used") {
-		con.query(`SELECT * FROM emotes`, (err,rows) => {
-			sorted = rows.sort(function(a, b) {return a.uses - b.uses})
-			sorted.reverse()
-			emb = new discord.MessageEmbed()
-				.setTitle("Leaderboard | Most used emotes")
-				.setDescription(`1. ${resolveEmoteTagFromId(sorted[0].id)} | ${sorted[0].uses}\n2. ${resolveEmoteTagFromId(sorted[1].id)} | ${sorted[1].uses}\n3. ${resolveEmoteTagFromId(sorted[2].id)} | ${sorted[2].uses}\n4. ${resolveEmoteTagFromId(sorted[3].id)} | ${sorted[3].uses}\n5. ${resolveEmoteTagFromId(sorted[4].id)} | ${sorted[4].uses}`)
-			return message.reply(emb)
-		}) //this could be cleaner
+		if(msgArray[1] == "most-used"||msgArray[1] == "uses") {
+			//worst page system ever created by mankind
+			//but it works
+			start = parseInt(msgArray[2])-1||0
+			start *= 5
+			con.query(`SELECT * FROM emotes`, (err,rows) => {
+				sorted = rows.sort(function(a, b) {return a.uses - b.uses})
+				sorted.reverse()
+				if(start < 0||start > sorted.length-5) return message.reply("Invalid page")
+				
+				str = ""
+				for(i=0;i<5;i++) {
+					str += `${1+(start+i)}. ${resolveEmoteTagFromId(sorted[start+i].id)} | ${sorted[start+i].uses}\n`
+				}
+				
+				emb = new discord.MessageEmbed()
+					.setTitle("Leaderboard | Most used emotes")
+					.setDescription(str)
+					.setFooter(`${start+1}-${start+5} of ${sorted.length} | ++lb uses [page] to jump to page`)
+				return message.reply(emb)
+			})
 		}
 		
-		if(msgArray[1] == "most-reacts-sent") {
-		con.query(`SELECT * FROM users`, (err,rows) => {
-			sorted = rows.sort(function(a, b) {return a.rsent - b.rsent})
-			sorted.reverse()
-			emb = new discord.MessageEmbed()
-				.setTitle("Leaderboard | Most reactions sent")
-				.setDescription(`1. ${resolveUserFromId(sorted[0].id)} | ${sorted[0].rsent}\n2. ${resolveUserFromId(sorted[1].id)} | ${sorted[1].rsent}\n3. ${resolveUserFromId(sorted[2].id)} | ${sorted[2].rsent}\n4. ${resolveUserFromId(sorted[3].id)} | ${sorted[3].rsent}\n5. ${resolveUserFromId(sorted[4].id)} | ${sorted[4].rsent}`)
-			return message.reply(emb)
-		})
+		if(msgArray[1] == "most-reacts-sent"||msgArray[1] == "rsent") {
+			start = parseInt(msgArray[2])-1||0
+			start *= 5
+			con.query(`SELECT * FROM users`, (err,rows) => {
+				sorted = rows.sort(function(a, b) {return a.rsent - b.rsent})
+				sorted.reverse()
+				if(start < 0||start > sorted.length-5) return message.reply("Invalid page")
+				
+				str = ""
+				for(i=0;i<5;i++) {
+					str += `${1+(start+i)}. ${resolveUserFromId(sorted[start+i].id)} | ${sorted[start+i].rsent}\n`
+				}
+				
+				emb = new discord.MessageEmbed()
+					.setTitle("Leaderboard | Most reacts sent")
+					.setDescription(str)
+					.setFooter(`${start+1}-${start+5} of ${sorted.length} | ++lb rsent [page] to jump to page`)
+				return message.reply(emb)
+			})
 		}
 		
-		if(msgArray[1] == "most-reacts-received") {
-		con.query(`SELECT * FROM users`, (err,rows) => {
-			sorted = rows.sort(function(a, b) {return a.rrecv - b.rrecv})
-			sorted.reverse()
-			emb = new discord.MessageEmbed()
-				.setTitle("Leaderboard | Most reactions received")
-				.setDescription(`1. ${resolveUserFromId(sorted[0].id)} | ${sorted[0].rrecv}\n2. ${resolveUserFromId(sorted[1].id)} | ${sorted[1].rrecv}\n3. ${resolveUserFromId(sorted[2].id)} | ${sorted[2].rrecv}\n4. ${resolveUserFromId(sorted[3].id)} | ${sorted[3].rrecv}\n5. ${resolveUserFromId(sorted[4].id)} | ${sorted[4].rrecv}`)
-			message.reply(emb)
-		})
+		if(msgArray[1] == "most-reacts-received"||msgArray[1] == "rrecv") {
+		start = parseInt(msgArray[2])-1||0
+			start *= 5
+			con.query(`SELECT * FROM users`, (err,rows) => {
+				sorted = rows.sort(function(a, b) {return a.rrecv - b.rrecv})
+				sorted.reverse()
+				if(start < 0||start > sorted.length-5) return message.reply("Invalid page")
+				
+				str = ""
+				for(i=0;i<5;i++) {
+					str += `${1+(start+i)}. ${resolveUserFromId(sorted[start+i].id)} | ${sorted[start+i].rrecv}\n`
+				}
+				
+				emb = new discord.MessageEmbed()
+					.setTitle("Leaderboard | Most reacts received")
+					.setDescription(str)
+					.setFooter(`${start+1}-${start+5} of ${sorted.length} | ++lb rrecv [page] to jump to page`)
+				return message.reply(emb)
+			})
 		}
 		return
 	}
 	
+	//Random emote
 	if(message.content.startsWith(prefix + "random")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
@@ -185,6 +224,7 @@ bot.on("message", message => {
 		return
 	}
 	
+	//Random user
 	if(message.content.startsWith(prefix + "user")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
@@ -197,11 +237,64 @@ bot.on("message", message => {
 		})
 		return
 	}
+	
+	//Log channel
+	if(message.content.startsWith(prefix + "log-channel")) {
+		if(!message.member.hasPermission("MANAGE_MESSAGES")) return
+		if(!message.mentions.channels.first()) return con.query(`SELECT * FROM settings WHERE server = '${message.guild.id}'`, (err,rows) => {if(rows.length > 0) {con.query(`DELETE FROM settings WHERE server = '${message.guild.id}'`); message.reply("I will no longer log events in this server.")}})
+		
+		con.query(`SELECT * FROM settings WHERE server = '${message.guild.id}'`, (err,rows) => {
+			if(rows.length == 0) con.query(`INSERT INTO settings (server, channel) VALUES ('${message.guild.id}', '${message.mentions.channels.first().id}')`)
+			
+			con.query(`UPDATE settings SET channel = ${message.mentions.channels.first().id} WHERE server = '${message.guild.id}'`)
+			message.reply("Channel set! I'm sending a message to the channel to verify that it's the right one.\n\nIf no message appears, check my permissions!")
+			bot.channels.fetch(message.mentions.channels.first().id).then(c => c.send("This is a test message..."))
+		})
+	}
+	
+	//Run SQL query
+	if(message.content.startsWith(prefix + "query")) {
+		if(message.author.id !== cfg.owner) return message.reply("Access denied")
+		
+		q = msgArray.slice(1).join(" ")
+		
+		con.query(q, (err,rows) => {
+			message.reply(rows.message||`Query OK (${rows.length} rows)`)
+		})
+	}
+	
+	//Remove duplicate entries
+	if(message.content.startsWith(prefix + "rdupl")) {
+		if(message.author.id !== cfg.owner) return message.reply("Access denied")
+		
+		con.query(`SELECT * FROM emotes WHERE id = '${msgArray[1]}'`, (err,rows) => {
+			con.query(`DELETE FROM emotes WHERE id = "${msgArray[1]}" LIMIT ${rows.length-1};`)
+			message.reply("OK")
+		})
+	}
+	
+	//Testing command
+	if(message.content.startsWith(prefix + "testcommand")) {
+		console.log(recent)
+	}
 })
 
-bot.on("messageReactionAdd", react => {
+bot.on("messageReactionAdd", (react) => {
 	console.log(`${react.users.cache.last().tag} reacted with ${react.emoji.name} to ${react.message.author.tag}`)
 	if(!react.emoji.id) return
+	
+	//This keeps track of reactions which were added recently
+	//Entries are automatically removed after 1.5 seconds
+	recent.push({
+		ts: Date.now(),
+		user: react.users.cache.last().id,
+		message: react.message.id,
+		messageChannel: react.message.channel.id,
+		messageGuild: react.message.guild.id,
+		emoji: react.emoji.name + " | " + react.emoji.url||react.emoji.name
+	})
+	
+	setTimeout(() => {recent.splice(recent.findIndex(x => x.ts == Date.now()),1)},1500)
 	
 	
 	con.query(`SELECT * FROM emotes WHERE id = '${react.emoji.id}'`, (err,rows) => {
@@ -233,6 +326,24 @@ bot.on("messageReactionAdd", react => {
 		}
 	})
 	
+})
+
+bot.on("messageReactionRemove", (react, user) => {
+	a = recent.findIndex(x => x.message == react.message.id)
+	if(!recent[a]) return
+	if(user.id == recent[a].user) {
+		emb = new discord.MessageEmbed()
+			.setTitle("Ghost reaction caught")
+			.addField("User", resolveUserFromId(recent[a].user))
+			.addField("Emote", recent[a].emoji)
+			.addField("Message", `https://discord.com/channels/${recent[a].messageGuild}/${recent[a].messageChannel}/${recent[a].message}`)
+			.setTimestamp(recent[a].ts)
+			
+		con.query(`SELECT * FROM settings WHERE server = '${react.message.guild.id}'`, (err,rows) => {
+			if(rows.length == 0) return; 
+			bot.channels.fetch(rows[0].channel).then(c => c.send(emb))
+		})
+	}
 })
 
 
