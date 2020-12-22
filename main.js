@@ -89,6 +89,7 @@ bot.on("message", message => {
 					con.query(`UPDATE emotes SET messages = ${rows[0].messages+1} WHERE id = '${id}'`)
 				}
 			})
+			break
 		}
 	}
 	
@@ -105,9 +106,9 @@ bot.on("message", message => {
 			if(!id) return
 			if(isNaN(id)) return
 			if(!bot.emojis.cache.filter(x => x.id == id)) return
-		} else if(message.guild.emojis.cache.filter(x => x.name == msgArray[1])) {
-			if(!message.guild.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
-			id = message.guild.emojis.cache.filter(x => x.name == msgArray[1]).first().id
+		} else if(bot.emojis.cache.filter(x => x.name == msgArray[1])) {
+			if(!bot.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
+			id = bot.emojis.cache.filter(x => x.name == msgArray[1]).first().id
 		} else return
 		
 		con.query(`SELECT * FROM emotes WHERE id = '${id}'`, (err,rows) => {
@@ -115,6 +116,27 @@ bot.on("message", message => {
 			message.reply(`${resolveEmoteTagFromId(id)} has been used ${rows[0].uses} times. (${rows[0].messages} times in messages, ${rows[0].reacts} times as a reaction)`)
 		})
 		return
+	}
+	
+	//Emote add timestamp
+	if(message.content.startsWith(prefix + "added")) {
+		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
+		lastcommand = Date.now()
+		if(!msgArray[1]) return
+		if(message.content.includes("'")||message.content.includes(";")) return
+		
+		if(msgArray[1].startsWith("<:")||msgArray[1].startsWith("<a:") && msgArray[1].endsWith(">")) {
+			id = msgArray[1].slice(-19,-1)
+			
+			if(!id) return
+			if(isNaN(id)) return
+			if(!bot.emojis.cache.filter(x => x.id == id)) return
+		} else if(bot.emojis.cache.filter(x => x.name == msgArray[1])) {
+			if(!bot.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
+			id = bot.emojis.cache.filter(x => x.name == msgArray[1]).first().id
+		} else return
+	
+		message.reply(bot.emojis.cache.get(id).createdAt.toGMTString())
 	}
 	
 	//User stats
@@ -132,7 +154,17 @@ bot.on("message", message => {
 	
 	//Help
 	if(message.content.startsWith(prefix + "help")) {
-		message.reply("++uses [emote] to get info about an emote\n++stats [user, leave blank for yourself] to get info about a user\n++leaderboard to check leaderboards\n++random to get a random emote\n++user for a random user")
+		message.reply("++uses [emote] to get info about an emote\n++stats [user, leave blank for yourself] to get info about a user\n++leaderboard to check leaderboards\n++random to get a random emote\n++user for a random user\n++search [name] to look for emotes (modifiers: `-g` to only show emotes from this server)")
+	}
+	
+	//Bot info
+	if(message.content.startsWith(prefix + "info")||message.content.startsWith(prefix + "about")) {
+		message.reply(`Emoticore provides emote usage statistics for servers.\nIt is currently private, though if you own a large server which needs a way to track emote usage, ask monitor#1725\n\nSee ++help for commands`)
+	}
+	
+	//"Invite"
+	if(message.content.startsWith(prefix + "invite")) {
+		message.reply(`Emoticore is currently private.\n\n++about for more info`)
 	}
 	
 	//Leaderboards
@@ -212,6 +244,8 @@ bot.on("message", message => {
 	if(message.content.startsWith(prefix + "random")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
+	
+		//THIS IS VERY UNOPTIMIZED
 		con.query(`SELECT * FROM emotes`, (err,rows) => {
 			newrows = []
 			for(i=0;i<rows.length;i++) {
@@ -236,6 +270,50 @@ bot.on("message", message => {
 			message.reply(emb)
 		})
 		return
+	}
+	
+	//Find emotes
+	if(message.content.startsWith(prefix + "search")) {
+		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
+		lastcommand = Date.now()
+		if(!msgArray[1]) return
+		
+		q = msgArray[1]
+		results = msgArray[2] == "-g" ? message.guild.emojis.cache.filter(x => x.name.toLowerCase().includes(q)) : bot.emojis.cache.filter(x => x.name.toLowerCase().includes(q))
+		bot.emojis.cache.filter(x => x.name.toLowerCase().includes(q))
+		if(!results.first()) return
+		arr = results.keyArray()
+		
+		str = "Found some emotes:\n"
+		for(i=0;i<15;i++) {
+			if(!results.get(arr[i])) break
+			str += `${resolveEmoteTagFromId(results.get(arr[i]).id)} | ${results.get(arr[i]).name}\n`
+		}
+		if(results.size > 15) str += `+${results.size-15} more emotes`
+		message.reply(str)
+	}
+	
+	//Get emote link
+	if(message.content.startsWith(prefix + "em")) {
+		if(!msgArray[1]) return
+		
+		if(msgArray[1].startsWith("<:")||msgArray[1].startsWith("<a:") && msgArray[1].endsWith(">")) {
+			id = msgArray[1].slice(-19,-1)
+			
+			if(!id) return
+			if(isNaN(id)) return
+			if(!bot.emojis.cache.filter(x => x.id == id)) return
+		} else if(bot.emojis.cache.filter(x => x.name == msgArray[1])) {
+			if(!bot.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
+			id = bot.emojis.cache.filter(x => x.name == msgArray[1]).first().id
+		} else return
+		
+		t = bot.emojis.cache.get(id)
+		
+		message.reply(t ? t.url : `https://cdn.discordapp.com/emojis/${id}.${msgArray[1].startsWith("<a:") ? "gif" : "png"}`)
+		//the line above is a bit confusing so:
+		//if the emote exists in the bot's cache, reply with the url
+		//if it cannot access the emote, manually construct a link
 	}
 	
 	//Log channel
@@ -264,6 +342,7 @@ bot.on("message", message => {
 	}
 	
 	//Remove duplicate entries
+	//This is a temporary solution for the entry duplication bug.
 	if(message.content.startsWith(prefix + "rdupl")) {
 		if(message.author.id !== cfg.owner) return message.reply("Access denied")
 		
@@ -273,13 +352,21 @@ bot.on("message", message => {
 		})
 	}
 	
-	//Testing command
-	if(message.content.startsWith(prefix + "testcommand")) {
-		console.log(recent)
+	//Eval
+	if(message.content.startsWith(prefix + "eval")) {
+		if(message.author.id !== cfg.owner) return message.reply("Access denied")
+		
+		str = msgArray.slice(1).join(" ")
+		eval(str)
 	}
+	
+	//Testing command
+	//if(message.content.startsWith(prefix + "testcommand")) {
+	//	console.log(recent)
+	//}
 })
 
-bot.on("messageReactionAdd", (react) => {
+bot.on("messageReactionAdd", async (react) => {
 	console.log(`${react.users.cache.last().tag} reacted with ${react.emoji.name} to ${react.message.author.tag}`)
 	if(!react.emoji.id) return
 	
@@ -328,7 +415,7 @@ bot.on("messageReactionAdd", (react) => {
 	
 })
 
-bot.on("messageReactionRemove", (react, user) => {
+bot.on("messageReactionRemove", async (react, user) => {
 	a = recent.findIndex(x => x.message == react.message.id)
 	if(!recent[a]) return
 	if(user.id == recent[a].user) {
