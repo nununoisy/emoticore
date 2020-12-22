@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<style>
+		body {
+			background-color: #333333;
+			font-family: "Arial";
+		}
+		.title {
+			text-align: center;
+			color: #6ced73;
+		}
+		.category {
+			font-family: system-ui;
+			font-weight: lighter;
+			font-size: 26px;
+			text-align: center;
+			color: #6ced73;
+		}
+		hr {
+			color: #6ced73;
+		}
+		.command {
+			font-size: 20px;
+			color: #6ced73;
+			margin: 2px;
+		}
+		.cmd-desc {
+			color: #d1d1d1;
+		}
+		.aliases {
+			color: #e2e2e2;
+			font-family: monospace;
+		}
+	</style>
+</head>
+<body>
+	<h2 class="title">Emoticore Command List</h2>
+	
+	<h4 class="category">Statistics</h4>
+	<hr>
+	
+	<h5 class="command">++uses [emote]</h5>
+	<p class="cmd-desc">Get an emote's usage count. You may mention an emote or use its name.</p>
+	
+	<h5 class="command">++stats (user)</h5>
+	<p class="cmd-desc">Get a user's stats. Defaults to yourself, ping someone to specify a user.</p>
+	
+	<h5 class="command">++leaderboard (most-used|most-reacts-sent|most-reacts-received) (page)</h5>
+	<p class="aliases">Aliases: lb</p>
+	<p class="cmd-desc">Shows leaderboards for one of the categories, or a list of categories if none is specified.</p>
+	
+	<h4 class="category">Utility</h4>
+	<hr>
+	
+	<h5 class="command">++added [emote]</h5>
+	<p class="cmd-desc">Shows when an emote was added. You may mention an emote or use its name.<p>
+	
+	<h5 class="command">++search [name]</h5>
+	<p class="cmd-desc">Searches for emotes that match the search query. Type -g after the query to limit results to this server.<p>
+	
+	<h5 class="command">++em [emote]</h5>
+	<p class="cmd-desc">Get the link to an emote. You may mention an emote or use its name.<p>
+	
+	<h4 class="category">Info</h4>
+	<hr>
+	
+	<h5 class="command">++help</h5>
+	<p class="cmd-desc">Get a list of commands.<p>
+	
+	<h5 class="command">++info</h5>
+	<p class="cmd-desc">Get info about the bot.<p>
+	
+	<h4 class="category">Logging</h4>
+	<hr>
+	
+	<h5 class="command">++log-channel [channel]</h5>
+	<p class="cmd-desc">Set the logging channel, or disable logging if no channel is provided. To specify a channel, mention it. Requires permission to manage messages.<p>
+	
+	<h4 class="category">Misc.</h4>
+	<hr>
+	
+	<h5 class="command">++random</h5>
+	<p class="cmd-desc">Shows usage stats for a random emote.<p>
+	
+	<h5 class="command">++user</h5>
+	<p class="cmd-desc">Shows stats for a random user.<p>
+</body>
