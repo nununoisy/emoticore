@@ -111,9 +111,14 @@ bot.on("message", message => {
 			id = bot.emojis.cache.filter(x => x.name == msgArray[1]).first().id
 		} else return
 		
-		con.query(`SELECT * FROM emotes WHERE id = '${id}'`, (err,rows) => {
-			if(!rows[0]) return message.reply("I haven't logged that emote yet. (this likely means that it has never been used)")
-			message.reply(`${resolveEmoteTagFromId(id)} has been used ${rows[0].uses} times. (${rows[0].messages} times in messages, ${rows[0].reacts} times as a reaction)`)
+		con.query(`SELECT * FROM emotes`, (err,rows) => {
+			sorted = rows.sort(function(a, b) {return a.uses - b.uses})
+			sorted.reverse()
+			
+			row = rows.filter(x => x.id == id)[0]
+			
+			if(!row) return message.reply("I haven't logged that emote yet. (this likely means that it has never been used)")
+			message.reply(`${resolveEmoteTagFromId(id)} has been used ${row.uses} times. (${row.messages} times in messages, ${row.reacts} times as a reaction). It is the #${sorted.indexOf(row)+1} most used emote.`)
 		})
 		return
 	}
@@ -368,7 +373,6 @@ bot.on("message", message => {
 
 bot.on("messageReactionAdd", async (react) => {
 	console.log(`${react.users.cache.last().tag} reacted with ${react.emoji.name} to ${react.message.author.tag}`)
-	if(!react.emoji.id) return
 	
 	//This keeps track of reactions which were added recently
 	//Entries are automatically removed after 1.5 seconds
@@ -383,6 +387,7 @@ bot.on("messageReactionAdd", async (react) => {
 	
 	setTimeout(() => {recent.splice(recent.findIndex(x => x.ts == Date.now()),1)},1500)
 	
+	if(!react.emoji.id) return
 	
 	con.query(`SELECT * FROM emotes WHERE id = '${react.emoji.id}'`, (err,rows) => {
 		if(err) throw err
