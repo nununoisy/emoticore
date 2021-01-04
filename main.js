@@ -118,7 +118,8 @@ bot.on("message", message => {
 			row = rows.filter(x => x.id == id)[0]
 			
 			if(!row) return message.reply("I haven't logged that emote yet. (this likely means that it has never been used)")
-			message.reply(`${resolveEmoteTagFromId(id)} has been used ${row.uses} times. (${row.messages} times in messages, ${row.reacts} times as a reaction). It is the #${sorted.indexOf(row)+1} most used emote.`)
+			pos = sorted.indexOf(row)+1
+			message.reply(`${resolveEmoteTagFromId(id)} has been used ${row.uses} times. (${row.messages} times in messages, ${row.reacts} times as a reaction). It is the #${pos} most used emote.`)
 		})
 		return
 	}
@@ -148,7 +149,7 @@ bot.on("message", message => {
 	if(message.content.startsWith(prefix + "stats")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
-		target = message.mentions.users.first()||message.author
+		target = bot.users.cache.filter(x => x.tag.toLowerCase().startsWith(msgArray[1])).first()||message.mentions.users.first()||message.author
 		
 		con.query(`SELECT * FROM users WHERE id = '${target.id}'`, (err,rows) => {
 			if(!rows[0]) return message.reply("I haven't logged that user yet.")
@@ -194,7 +195,7 @@ bot.on("message", message => {
 				}
 				
 				emb = new discord.MessageEmbed()
-					.setTitle("Leaderboard | Most used emotes")
+					.setTitle("Global Leaderboard | Most used emotes")
 					.setDescription(str)
 					.setFooter(`${start+1}-${start+5} of ${sorted.length} | ++lb uses [page] to jump to page`)
 				return message.reply(emb)
@@ -215,7 +216,7 @@ bot.on("message", message => {
 				}
 				
 				emb = new discord.MessageEmbed()
-					.setTitle("Leaderboard | Most reacts sent")
+					.setTitle("Global Leaderboard | Most reacts sent")
 					.setDescription(str)
 					.setFooter(`${start+1}-${start+5} of ${sorted.length} | ++lb rsent [page] to jump to page`)
 				return message.reply(emb)
@@ -236,7 +237,7 @@ bot.on("message", message => {
 				}
 				
 				emb = new discord.MessageEmbed()
-					.setTitle("Leaderboard | Most reacts received")
+					.setTitle("Global Leaderboard | Most reacts received")
 					.setDescription(str)
 					.setFooter(`${start+1}-${start+5} of ${sorted.length} | ++lb rrecv [page] to jump to page`)
 				return message.reply(emb)
@@ -250,13 +251,9 @@ bot.on("message", message => {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
 	
-		//THIS IS VERY UNOPTIMIZED
-		con.query(`SELECT * FROM emotes`, (err,rows) => {
-			newrows = []
-			for(i=0;i<rows.length;i++) {
-				if(bot.emojis.cache.filter(x => x.id == rows[i].id).first()) newrows.push(rows[i])
-			} //clean up emotes that the bot can't use
-			row = newrows[Math.round(Math.random()*newrows.length)]||newrows[0]
+		con.query(`SELECT * FROM emotes WHERE id = ${bot.emojis.cache.randomKey()}`, (err,rows) => {
+			row = rows[0]
+			if(!row) return message.reply("Failed to get a random emote")
 			
 			message.reply(`${resolveEmoteTagFromId(row.id)} has been used ${row.uses} times. (${row.messages} times in messages, ${row.reacts} times as a reaction)`)
 		})

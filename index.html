@@ -3,8 +3,10 @@
 <head>
 	<style>
 		body {
-			background-color: #333333;
+			background-color: #212121;
 			font-family: "Arial";
+			margin-left: 0px;
+			margin-right: 0px;
 		}
 		.title {
 			text-align: center;
@@ -24,46 +26,68 @@
 			font-size: 20px;
 			color: #6ced73;
 			margin: 2px;
+			text-shadow: 1px 1px 2px #000000;
+			margin-left: 10px;
+		}
+		.cmd-arg {
+			color: #6ced73;
+			background-color: rgb(208, 245, 210, 0.1);
+			border-radius: 4px;
+			border: 2px solid rgba(223, 247, 224, 0.1);
+			font-family: monospace;
 		}
 		.cmd-desc {
 			color: #d1d1d1;
+			margin-left: 10px;
 		}
 		.aliases {
 			color: #e2e2e2;
 			font-family: monospace;
+			background-color: rgb(255, 255, 255, 0.05);
+			border-radius: 2px;
+			border: 2px solid rgba(255, 255, 255, 0.05);
+			margin-left: 10px;
+		}
+		.category-bg {
+			background-color: #3d3d3d;
+			margin: 0px;
+			box-shadow: 0px 0px 2px #454545;
 		}
 	</style>
 </head>
 <body>
 	<h2 class="title">Emoticore Command List</h2>
 	
+	<div class="category-bg">
 	<h4 class="category">Statistics</h4>
-	<hr>
+	</div>
 	
-	<h5 class="command">++uses [emote]</h5>
+	<h5 class="command">++uses <span class="cmd-arg">[emote]</span></h5>
 	<p class="cmd-desc">Get an emote's usage count. You may mention an emote or use its name.</p>
 	
-	<h5 class="command">++stats (user)</h5>
+	<h5 class="command">++stats <span class="cmd-arg">(user)</h5>
 	<p class="cmd-desc">Get a user's stats. Defaults to yourself, ping someone to specify a user.</p>
 	
-	<h5 class="command">++leaderboard (most-used|most-reacts-sent|most-reacts-received) (page)</h5>
-	<p class="aliases">Aliases: lb</p>
+	<h5 class="command">++leaderboard <span class="cmd-arg">(most-used|most-reacts-sent|most-reacts-received)</span> <span class="cmd-arg">(page)</h5>
+	<code class="aliases">Aliases: lb</code>
 	<p class="cmd-desc">Shows leaderboards for one of the categories, or a list of categories if none is specified.</p>
 	
+	<div class="category-bg">
 	<h4 class="category">Utility</h4>
-	<hr>
+	</div>
 	
-	<h5 class="command">++added [emote]</h5>
+	<h5 class="command">++added <span class="cmd-arg">[emote]</h5>
 	<p class="cmd-desc">Shows when an emote was added. You may mention an emote or use its name.<p>
 	
-	<h5 class="command">++search [name]</h5>
+	<h5 class="command">++search <span class="cmd-arg">[name]</h5>
 	<p class="cmd-desc">Searches for emotes that match the search query. Type -g after the query to limit results to this server.<p>
 	
-	<h5 class="command">++em [emote]</h5>
+	<h5 class="command">++em <span class="cmd-arg">[emote]</h5>
 	<p class="cmd-desc">Get the link to an emote. You may mention an emote or use its name.<p>
 	
+	<div class="category-bg">
 	<h4 class="category">Info</h4>
-	<hr>
+	</div>
 	
 	<h5 class="command">++help</h5>
 	<p class="cmd-desc">Get a list of commands.<p>
@@ -71,14 +95,16 @@
 	<h5 class="command">++info</h5>
 	<p class="cmd-desc">Get info about the bot.<p>
 	
+	<div class="category-bg">
 	<h4 class="category">Logging</h4>
-	<hr>
+	</div>
 	
-	<h5 class="command">++log-channel [channel]</h5>
+	<h5 class="command">++log-channel <span class="cmd-arg">[channel]</h5>
 	<p class="cmd-desc">Set the logging channel, or disable logging if no channel is provided. To specify a channel, mention it. Requires permission to manage messages.<p>
 	
+	<div class="category-bg">
 	<h4 class="category">Misc.</h4>
-	<hr>
+	</div>
 	
 	<h5 class="command">++random</h5>
 	<p class="cmd-desc">Shows usage stats for a random emote.<p>
