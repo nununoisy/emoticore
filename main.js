@@ -1,5 +1,5 @@
 const discord = require("discord.js")
-const mysql = require('mysql');
+const mysql = require('mysql')
 const cfg = require("./config.json")
 const bot = new discord.Client({disableEveryone: true})
 var con = mysql.createConnection({
@@ -7,7 +7,7 @@ var con = mysql.createConnection({
   user: cfg.sql.user,
   password: cfg.sql.password,
   database: cfg.sql.database
-});
+})
 prefix = cfg.prefix
 timeout = cfg.timeout
 
@@ -24,8 +24,6 @@ bot.on("ready", async () => {
 		
 })
 
-//setInterval(() => {cleanupDuplicates("test", "x")},5000)
-
 function resolveEmoteTagFromId(id) {
 	emote = bot.emojis.cache.filter(x => x.id == id).first()
 	if(!emote) return "Unavailable Emote"
@@ -40,35 +38,6 @@ function resolveUserFromId(id) {
 	//user = bot.users.cache.filter(x => x.id == id).first()
 	//if(!user) user = {id: id}
 	return `<@${id}>`
-}
-
-/////////////////////////////////
-//THE FUNCTION BELOW IS UNUSED //
-//      IT DOES NOT WORK       //
-/////////////////////////////////
-
-function cleanupDuplicates(table, value) {
-	list = []
-	rowsDeleted = 0
-	con.query(`SELECT * FROM ${table}`, (err,rows) => {
-			if(err) throw err
-			for(i=0;i<rows.length;i++) {
-				if(!list.includes(rows[i][value])) list.push(rows[i][value])
-			} //Build list of rows
-			
-			for(let i=0;i<list.length;i++) {
-				con.query(`SELECT * FROM ${table} WHERE ${value} = '${list[i]}'`, (err,otherrows) => {
-					console.log(otherrows[1])
-					if(otherrows[1]) {
-						sql = `DELETE FROM ${table} WHERE ${value} = '${list[i]}' LIMIT ${otherrows.filter(x => x == otherrows[i]).length-1}`
-						console.log(sql)
-						//con.query(`DELETE FROM ${table} WHERE ${value} = '${list[i]}' LIMIT ${list.filter(x => x = list[i]).length-1}`)
-						rowsDeleted++
-					}
-				})
-			} //Sweep through the list and delete duplicates
-	})
-	console.log(`Cleanup finished, deleted ${rowsDeleted} duplicates`)
 }
 
 bot.on("message", message => {
@@ -119,7 +88,7 @@ bot.on("message", message => {
 			
 			if(!row) return message.reply("I haven't logged that emote yet. (this likely means that it has never been used)")
 			pos = sorted.indexOf(row)+1
-			message.reply(`${resolveEmoteTagFromId(id)} has been used ${row.uses} times. (${row.messages} times in messages, ${row.reacts} times as a reaction). It is the #${pos} most used emote.`)
+			message.reply(`${resolveEmoteTagFromId(id)} has been used ${row.uses} times. \n💬 **Messages:** ${row.messages}\n😀 **Reactions:** ${row.reacts}\n📈 **Position:** #${sorted.indexOf(row)+1}`)
 		})
 		return
 	}
@@ -153,7 +122,7 @@ bot.on("message", message => {
 		
 		con.query(`SELECT * FROM users WHERE id = '${target.id}'`, (err,rows) => {
 			if(!rows[0]) return message.reply("I haven't logged that user yet.")
-			 message.reply(`${bot.users.cache.get(target.id).tag} has received ${rows[0].rrecv} reactions and sent ${rows[0].rsent} reactions`)
+			 message.reply(`**${bot.users.cache.get(target.id).tag}**\n🔹 **Score:** ${Math.round((rows[0].rsent/2)+rows[0].rrecv)}\n📤 **Reactions sent:** ${rows[0].rsent}\n📥 **Reactions received:** ${rows[0].rrecv}`)
 		})
 		return
 	}
@@ -255,7 +224,7 @@ bot.on("message", message => {
 			row = rows[0]
 			if(!row) return message.reply("Failed to get a random emote")
 			
-			message.reply(`${resolveEmoteTagFromId(row.id)} has been used ${row.uses} times. (${row.messages} times in messages, ${row.reacts} times as a reaction)`)
+			message.reply(`${resolveEmoteTagFromId(row.id)} has been used ${row.uses} times. \n💬 **Messages:** ${row.messages}\n😀 **Reactions:** ${row.reacts}`)
 		})
 		return
 	}
