@@ -1,11 +1,15 @@
 {
+	"logReactions": true,
+	"allowEval": false,
 	"sql": {
-		"host": null,
-		"user": null,
+		"host": "localhost",
+		"user": "root",
 		"password": null,
 		"database": null
 	},
 	"prefix": "++",
-	"timeout": 1250,
+	"timeout": 500,
+	"owner": null,
+	"ownerTag": "[BOT OWNER TAG]",
 	"token": null
 }

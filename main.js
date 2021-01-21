@@ -46,13 +46,14 @@ bot.on("message", message => {
 	
 	for(i=0;i<msgArray.length;i++) {
 		if(msgArray[i].startsWith("<:")||msgArray[i].startsWith("<a:") && msgArray[i].endsWith(">")) {
+			if(!msgArray[i].endsWith(">")) return
 			if(msgArray[i].includes("'")||msgArray[i].includes(";")) return
 			id = msgArray[i].slice(-19,-1)
 			
 			con.query(`SELECT * FROM emotes WHERE id = '${id}'`, (err,rows) => {
 				if(err) throw err
 				if(rows.length < 1) {
-					con.query(`INSERT INTO emotes (id, uses, messages, reacts) VALUES ('${id}', 1, 1, 0)`)
+					con.query(`INSERT IGNORE INTO emotes (id, uses, messages, reacts) VALUES ('${id}', 1, 1, 0)`)
 				} else {
 					con.query(`UPDATE emotes SET uses = ${rows[0].uses+1} WHERE id = '${id}'`)
 					con.query(`UPDATE emotes SET messages = ${rows[0].messages+1} WHERE id = '${id}'`)
@@ -66,6 +67,7 @@ bot.on("message", message => {
 	if(message.content.startsWith(prefix + "uses")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
+		if(message.channel.recipient) return
 		if(!msgArray[1]) return
 		if(message.content.includes("'")||message.content.includes(";")) return
 		
@@ -75,9 +77,9 @@ bot.on("message", message => {
 			if(!id) return
 			if(isNaN(id)) return
 			if(!bot.emojis.cache.filter(x => x.id == id)) return
-		} else if(bot.emojis.cache.filter(x => x.name == msgArray[1])) {
-			if(!bot.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
-			id = bot.emojis.cache.filter(x => x.name == msgArray[1]).first().id
+		} else if(message.guild.emojis.cache.filter(x => x.name == msgArray[1])) {
+			if(!message.guild.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
+			id = message.guild.emojis.cache.filter(x => x.name == msgArray[1]).first().id
 		} else return
 		
 		con.query(`SELECT * FROM emotes`, (err,rows) => {
@@ -118,11 +120,22 @@ bot.on("message", message => {
 	if(message.content.startsWith(prefix + "stats")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
-		target = bot.users.cache.filter(x => x.tag.toLowerCase().startsWith(msgArray[1])).first()||message.mentions.users.first()||message.author
+		target = bot.users.cache.filter(x => x.tag.toLowerCase().startsWith(msgArray.slice(1).join(" "))).first()||message.mentions.users.first()||message.author
+		if(!msgArray[1]) target = message.author //hnnnnggg
 		
-		con.query(`SELECT * FROM users WHERE id = '${target.id}'`, (err,rows) => {
-			if(!rows[0]) return message.reply("I haven't logged that user yet.")
-			 message.reply(`**${bot.users.cache.get(target.id).tag}**\n🔹 **Score:** ${Math.round((rows[0].rsent/2)+rows[0].rrecv)}\n📤 **Reactions sent:** ${rows[0].rsent}\n📥 **Reactions received:** ${rows[0].rrecv}`)
+		con.query(`SELECT * FROM users`, (err,rows) => {
+			row = rows.filter(x => x.id == target.id)[0]
+			
+			rsentSorted = rows.sort(function(a, b) {return a.rsent - b.rsent})
+			rsentSorted.reverse()
+			rsentPos = rsentSorted.indexOf(row)+1
+		
+			rrecvSorted = rows.sort(function(a, b) {return a.rrecv - b.rrecv})
+			rrecvSorted.reverse()
+			rrecvPos = rrecvSorted.indexOf(row)+1
+			
+			if(!row) return message.reply("I haven't logged that user yet.")
+			 message.reply(`**${bot.users.cache.get(target.id).tag}**\n🔹 **Score:** ${Math.round((row.rsent/2)+row.rrecv)}\n📤 **Reactions sent:** ${row.rsent} (#${rsentPos})\n📥 **Reactions received:** ${row.rrecv} (#${rrecvPos})`)
 		})
 		return
 	}
@@ -134,7 +147,7 @@ bot.on("message", message => {
 	
 	//Bot info
 	if(message.content.startsWith(prefix + "info")||message.content.startsWith(prefix + "about")) {
-		message.reply(`Emoticore provides emote usage statistics for servers.\nIt is currently private, though if you own a large server which needs a way to track emote usage, ask monitor#1725\n\nSee ++help for commands`)
+		message.reply(`Emoticore provides emote usage statistics for servers.\nIt is currently private, though if you own a large server which needs a way to track emote usage, ask ${cfg.ownerTag}\n\nSee ++help for commands`)
 	}
 	
 	//"Invite"
@@ -289,6 +302,7 @@ bot.on("message", message => {
 	
 	//Log channel
 	if(message.content.startsWith(prefix + "log-channel")) {
+		if(message.channel.recipient) return //how to check if a message is in a dm in the worst possible way
 		if(!message.member.hasPermission("MANAGE_MESSAGES")) return
 		if(!message.mentions.channels.first()) return con.query(`SELECT * FROM settings WHERE server = '${message.guild.id}'`, (err,rows) => {if(rows.length > 0) {con.query(`DELETE FROM settings WHERE server = '${message.guild.id}'`); message.reply("I will no longer log events in this server.")}})
 		
@@ -303,6 +317,7 @@ bot.on("message", message => {
 	
 	//Run SQL query
 	if(message.content.startsWith(prefix + "query")) {
+		if(!cfg.allowEval) return message.reply("This command is disabled")
 		if(message.author.id !== cfg.owner) return message.reply("Access denied")
 		
 		q = msgArray.slice(1).join(" ")
@@ -312,19 +327,9 @@ bot.on("message", message => {
 		})
 	}
 	
-	//Remove duplicate entries
-	//This is a temporary solution for the entry duplication bug.
-	if(message.content.startsWith(prefix + "rdupl")) {
-		if(message.author.id !== cfg.owner) return message.reply("Access denied")
-		
-		con.query(`SELECT * FROM emotes WHERE id = '${msgArray[1]}'`, (err,rows) => {
-			con.query(`DELETE FROM emotes WHERE id = "${msgArray[1]}" LIMIT ${rows.length-1};`)
-			message.reply("OK")
-		})
-	}
-	
 	//Eval
 	if(message.content.startsWith(prefix + "eval")) {
+		if(!cfg.allowEval) return message.reply("This command is disabled")
 		if(message.author.id !== cfg.owner) return message.reply("Access denied")
 		
 		str = msgArray.slice(1).join(" ")
@@ -338,7 +343,7 @@ bot.on("message", message => {
 })
 
 bot.on("messageReactionAdd", async (react) => {
-	console.log(`${react.users.cache.last().tag} reacted with ${react.emoji.name} to ${react.message.author.tag}`)
+	if(cfg.logReactions) console.log(`${react.users.cache.last().tag} reacted with ${react.emoji.name} to ${react.message.author.tag}`)
 	
 	//This keeps track of reactions which were added recently
 	//Entries are automatically removed after 1.5 seconds
@@ -358,7 +363,7 @@ bot.on("messageReactionAdd", async (react) => {
 	con.query(`SELECT * FROM emotes WHERE id = '${react.emoji.id}'`, (err,rows) => {
 		if(err) throw err
 		if(rows.length < 1) {
-			con.query(`INSERT INTO emotes (id, uses, messages, reacts) VALUES ('${react.emoji.id}', 1, 0, 1)`)
+			con.query(`INSERT IGNORE INTO emotes (id, uses, messages, reacts) VALUES ('${react.emoji.id}', 1, 0, 1)`)
 		} else {
 			con.query(`UPDATE emotes SET uses = ${rows[0].uses+1} WHERE id = '${react.emoji.id}' LIMIT 1`)
 			con.query(`UPDATE emotes SET reacts = ${rows[0].reacts+1} WHERE id = '${react.emoji.id}' LIMIT 1`)
@@ -368,7 +373,7 @@ bot.on("messageReactionAdd", async (react) => {
 	con.query(`SELECT * FROM users WHERE id = '${react.message.author.id}'`, (err,rows) => {
 		if(err) throw err
 		if(rows.length < 1) {
-			con.query(`INSERT INTO users (id, rrecv, rsent) VALUES ('${react.message.author.id}', 1, 0)`)
+			con.query(`INSERT IGNORE INTO users (id, rrecv, rsent) VALUES ('${react.message.author.id}', 1, 0)`)
 		} else {
 			con.query(`UPDATE users SET rrecv = ${rows[0].rrecv+1} WHERE id = '${react.message.author.id}'`)
 		}
@@ -377,7 +382,7 @@ bot.on("messageReactionAdd", async (react) => {
 	con.query(`SELECT * FROM users WHERE id = '${react.users.cache.last().id}'`, (err,rows) => {
 		if(err) throw err
 		if(rows.length < 1) {
-			con.query(`INSERT INTO users (id, rrecv, rsent) VALUES ('${react.users.cache.last().id}', 0, 1)`)
+			con.query(`INSERT IGNORE INTO users (id, rrecv, rsent) VALUES ('${react.users.cache.last().id}', 0, 1)`)
 		} else {
 			if(!react.users.cache.last()) return
 			con.query(`UPDATE users SET rsent = ${rows[0].rsent+1} WHERE id = '${react.users.cache.last().id}'`)
