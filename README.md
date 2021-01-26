@@ -8,7 +8,7 @@ Emoticore is a bot that helps with tracking emote usage. It also tracks how many
 WIP, going to write this later. Hopefully you can figure out how to get this running.
 
 # Known issues
-- Database entries are sometimes duplicated for no apparent reason
+None currently
 
 # Thanks
 Thanks to wurzt#0001 for coming up with the name
