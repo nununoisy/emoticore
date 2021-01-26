@@ -5,10 +5,25 @@ Discord bot for emote usage tracking
 Emoticore is a bot that helps with tracking emote usage. It also tracks how many reactions users receive/send so that your server can compete to be on the #1 spot!
 
 # Usage
-WIP, going to write this later. Hopefully you can figure out how to get this running.
+- Create an SQL database
+- Run the queries inside of sql_setup.txt
+- In the config, set `owner` and `ownerId` to your Discord tag and your Discord user ID respectively
+- Set `token` to the token of the bot you wish to host Emoticore on
+- Set `sql.database` to your SQL database's name and `sql.password` to your SQL password
+- Install discord.js, mysql and nodemon
+- Run the bot
 
 # Known issues
-None currently
+- Ratelimits are global which might lead to confusion if the bot is used on multiple servers. To avoid this, set `timeout` to 0 in the config
+
+# Config values
+- logReactions - whether or not to log reactions to the console. does not affect ghost reaction logging
+- allowEval - toggle the eval and query commands
+- prefix - the prefix of the bot
+- timeout - ratelimit length in milliseconds
+- owner - the bot owner's id
+- ownerTag - the bot owner's tag
+- token - the bot's token
 
 # Thanks
 Thanks to wurzt#0001 for coming up with the name
