@@ -1,3 +1,7 @@
+# 1.4.1
+- ++stats now supports user IDs
+- score leaderboards
+
 # 1.4
 - bug fixes
 - ++stats now includes position on leaderboards
