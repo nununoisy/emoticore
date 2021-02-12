@@ -188,7 +188,7 @@ bot.on("message", message => {
 	if(message.content.startsWith(prefix + "leaderboard")||message.content.startsWith(prefix + "lb")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
-		if(!msgArray[1]) return message.reply("Which leaderboard would you like to see?\nmost-used - most used emotes\nmost-reacts-sent - most reactions sent\nmost-reacts-received - most reactions received\ntype `++leaderboard [your choice]`")
+		if(!msgArray[1]) return message.reply("Which leaderboard would you like to see?\nmost-used - most used emotes\nmost-reacts-sent - most reactions sent\nmost-reacts-received - most reactions received\nscore - top user scores\ntype `++leaderboard [your choice]`")
 		
 		if(msgArray[1] == "most-used"||msgArray[1] == "uses") {
 			//worst page system ever created by mankind
