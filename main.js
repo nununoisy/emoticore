@@ -13,6 +13,7 @@ timeout = cfg.timeout
 
 lastcommand = Date.now()
 recent = []
+scoreCache = []
 
 con.connect(err => {if(err) throw err; console.log("Connected to database")})
 
@@ -21,6 +22,18 @@ bot.on("ready", async () => {
 		console.log("Ready")
 		let link = await bot.generateInvite(["SEND_MESSAGES"])
 		console.log(link)
+		
+		con.query("SELECT * FROM users", (err,rows) => {
+			t = Date.now()
+			console.log(`Calulating scores for ${rows.length} users`)
+			for(user of rows) {
+				scoreCache.push({
+					'id': user.id,
+					'score': Math.round((user.rsent/2)+user.rrecv)
+				})
+			}
+			console.log(`Finished calculating ${rows.length} scores`)
+		})
 		
 })
 
@@ -38,6 +51,21 @@ function resolveUserFromId(id) {
 	//user = bot.users.cache.filter(x => x.id == id).first()
 	//if(!user) user = {id: id}
 	return `<@${id}>`
+}
+
+function updateScoreCache(id, score) {
+	if(scoreCache.filter(x => x.id == id)[0]) {
+		scoreCache.filter(x => x.id == id)[0].score = score
+	} else {
+		scoreCache.push({
+			'id': id,
+			'score': score
+		})
+	}
+}
+
+function calculateScore(rsent, rrecv) {
+	return Math.round((rsent/2)+rrecv)
 }
 
 bot.on("message", message => {
@@ -120,11 +148,12 @@ bot.on("message", message => {
 	if(message.content.startsWith(prefix + "stats")) {
 		if(Date.now() < lastcommand + timeout) return message.reply("You're using this command a bit too fast, calm down.")
 		lastcommand = Date.now()
-		target = bot.users.cache.filter(x => x.tag.toLowerCase().startsWith(msgArray.slice(1).join(" "))).first()||message.mentions.users.first()||message.author
-		if(!msgArray[1]) target = message.author //hnnnnggg
+		target = bot.users.cache.filter(x => x.tag.toLowerCase().startsWith(msgArray.slice(1).join(" "))).first()||message.mentions.users.first()||{'id': msgArray[1]}
+		if(!msgArray[1]) target = message.author
 		
 		con.query(`SELECT * FROM users`, (err,rows) => {
 			row = rows.filter(x => x.id == target.id)[0]
+			if(!row) return message.reply("No users found")
 			
 			rsentSorted = rows.sort(function(a, b) {return a.rsent - b.rsent})
 			rsentSorted.reverse()
@@ -134,8 +163,8 @@ bot.on("message", message => {
 			rrecvSorted.reverse()
 			rrecvPos = rrecvSorted.indexOf(row)+1
 			
-			if(!row) return message.reply("I haven't logged that user yet.")
-			 message.reply(`**${bot.users.cache.get(target.id).tag}**\n🔹 **Score:** ${Math.round((row.rsent/2)+row.rrecv)}\n📤 **Reactions sent:** ${row.rsent} (#${rsentPos})\n📥 **Reactions received:** ${row.rrecv} (#${rrecvPos})`)
+			user = bot.users.cache.get(target.id)
+			message.reply(`**${user ? user.tag : msgArray[1]}**\n🔹 **Score:** ${calculateScore(row.rsent, row.rrecv)}\n📤 **Reactions sent:** ${row.rsent} (#${rsentPos})\n📥 **Reactions received:** ${row.rrecv} (#${rrecvPos})`)
 		})
 		return
 	}
@@ -224,6 +253,24 @@ bot.on("message", message => {
 					.setFooter(`${start+1}-${start+5} of ${sorted.length} | ++lb rrecv [page] to jump to page`)
 				return message.reply(emb)
 			})
+		}
+		if(msgArray[1] == "score"||msgArray[1] == "sc") {
+		start = parseInt(msgArray[2])-1||0
+			start *= 5
+			sorted = scoreCache.sort(function(a, b) {return a.score - b.score})
+			sorted.reverse()
+			if(start < 0||start > sorted.length-5) return message.reply("Invalid page")
+				
+			str = ""
+			for(i=0;i<5;i++) {
+				str += `${1+(start+i)}. ${resolveUserFromId(sorted[start+i].id)} | ${sorted[start+i].score}\n`
+			}
+				
+			emb = new discord.MessageEmbed()
+				.setTitle("Global Leaderboard | Top scores")
+				.setDescription(str)
+				.setFooter(`${start+1}-${start+5} of ${sorted.length} | ++lb sc [page] to jump to page`)
+			return message.reply(emb)
 		}
 		return
 	}
@@ -376,6 +423,7 @@ bot.on("messageReactionAdd", async (react) => {
 			con.query(`INSERT IGNORE INTO users (id, rrecv, rsent) VALUES ('${react.message.author.id}', 1, 0)`)
 		} else {
 			con.query(`UPDATE users SET rrecv = ${rows[0].rrecv+1} WHERE id = '${react.message.author.id}'`)
+			updateScoreCache(react.message.author.id, calculateScore(rows[0].rsent, rows[0].rrecv))
 		}
 	})
 	
@@ -386,6 +434,7 @@ bot.on("messageReactionAdd", async (react) => {
 		} else {
 			if(!react.users.cache.last()) return
 			con.query(`UPDATE users SET rsent = ${rows[0].rsent+1} WHERE id = '${react.users.cache.last().id}'`)
+			updateScoreCache(react.users.cache.last().id, calculateScore(rows[0].rsent, rows[0].rrecv))
 		}
 	})
 	
