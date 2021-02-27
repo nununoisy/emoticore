@@ -9,6 +9,7 @@
 	},
 	"prefix": "++",
 	"timeout": 500,
+	"recentExpiresAfter": 1500,
 	"owner": null,
 	"ownerTag": "[BOT OWNER TAG]",
 	"token": null
