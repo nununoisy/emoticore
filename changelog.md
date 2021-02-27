@@ -1,3 +1,11 @@
+# 1.5
+- emote management commands
+- ++add, ++rename, ++remove
+- currently in a very early state, might be buggy
+- added recentExpiresAfter property to config
+- ++slots, allows you to check how many emote slots your guild has
+- other small improvements
+
 # 1.4.1
 - ++stats now supports user IDs
 - score leaderboards

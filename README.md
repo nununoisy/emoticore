@@ -10,7 +10,7 @@ Emoticore is a bot that helps with tracking emote usage. It also tracks how many
 - In the config, set `owner` and `ownerId` to your Discord tag and your Discord user ID respectively
 - Set `token` to the token of the bot you wish to host Emoticore on
 - Set `sql.database` to your SQL database's name and `sql.password` to your SQL password
-- Install discord.js, mysql and nodemon
+- Install discord.js, mysql, node-fetch and nodemon
 - Run the bot
 
 # Known issues
@@ -21,6 +21,7 @@ Emoticore is a bot that helps with tracking emote usage. It also tracks how many
 - allowEval - toggle the eval and query commands
 - prefix - the prefix of the bot
 - timeout - ratelimit length in milliseconds
+- recentExpiresAfter - how long it takes for reactions to no longer be considered "recent" in milliseconds
 - owner - the bot owner's id
 - ownerTag - the bot owner's tag
 - token - the bot's token

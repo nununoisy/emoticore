@@ -1,5 +1,6 @@
 const discord = require("discord.js")
 const mysql = require('mysql')
+const nf = require("node-fetch")
 const cfg = require("./config.json")
 const bot = new discord.Client({disableEveryone: true})
 var con = mysql.createConnection({
@@ -24,7 +25,6 @@ bot.on("ready", async () => {
 		console.log(link)
 		
 		con.query("SELECT * FROM users", (err,rows) => {
-			t = Date.now()
 			console.log(`Calulating scores for ${rows.length} users`)
 			for(user of rows) {
 				scoreCache.push({
@@ -64,6 +64,20 @@ function updateScoreCache(id, score) {
 	}
 }
 
+function findEmote(msgArray, message) {
+	if(msgArray[1].startsWith("<:")||msgArray[1].startsWith("<a:") && msgArray[1].endsWith(">")) {
+		id = msgArray[1].slice(-19,-1)
+		
+		if(!id) return
+		if(isNaN(id)) return
+		return id
+	} else if(message.guild.emojis.cache.filter(x => x.name == msgArray[1])) {
+		if(!message.guild.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
+		id = message.guild.emojis.cache.filter(x => x.name == msgArray[1]).first().id
+		return id
+	} else return
+}
+
 function calculateScore(rsent, rrecv) {
 	return Math.round((rsent/2)+rrecv)
 }
@@ -99,16 +113,8 @@ bot.on("message", message => {
 		if(!msgArray[1]) return
 		if(message.content.includes("'")||message.content.includes(";")) return
 		
-		if(msgArray[1].startsWith("<:")||msgArray[1].startsWith("<a:") && msgArray[1].endsWith(">")) {
-			id = msgArray[1].slice(-19,-1)
-			
-			if(!id) return
-			if(isNaN(id)) return
-			if(!bot.emojis.cache.filter(x => x.id == id)) return
-		} else if(message.guild.emojis.cache.filter(x => x.name == msgArray[1])) {
-			if(!message.guild.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
-			id = message.guild.emojis.cache.filter(x => x.name == msgArray[1]).first().id
-		} else return
+		id = findEmote(msgArray, message)
+		if(!id) return
 		
 		con.query(`SELECT * FROM emotes`, (err,rows) => {
 			sorted = rows.sort(function(a, b) {return a.uses - b.uses})
@@ -130,16 +136,8 @@ bot.on("message", message => {
 		if(!msgArray[1]) return
 		if(message.content.includes("'")||message.content.includes(";")) return
 		
-		if(msgArray[1].startsWith("<:")||msgArray[1].startsWith("<a:") && msgArray[1].endsWith(">")) {
-			id = msgArray[1].slice(-19,-1)
-			
-			if(!id) return
-			if(isNaN(id)) return
-			if(!bot.emojis.cache.filter(x => x.id == id)) return
-		} else if(bot.emojis.cache.filter(x => x.name == msgArray[1])) {
-			if(!bot.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
-			id = bot.emojis.cache.filter(x => x.name == msgArray[1]).first().id
-		} else return
+		id = findEmote(msgArray, message)
+		if(!id) return
 	
 		message.reply(bot.emojis.cache.get(id).createdAt.toGMTString())
 	}
@@ -328,16 +326,8 @@ bot.on("message", message => {
 	if(message.content.startsWith(prefix + "em")) {
 		if(!msgArray[1]) return
 		
-		if(msgArray[1].startsWith("<:")||msgArray[1].startsWith("<a:") && msgArray[1].endsWith(">")) {
-			id = msgArray[1].slice(-19,-1)
-			
-			if(!id) return
-			if(isNaN(id)) return
-			if(!bot.emojis.cache.filter(x => x.id == id)) return
-		} else if(bot.emojis.cache.filter(x => x.name == msgArray[1])) {
-			if(!bot.emojis.cache.filter(x => x.name == msgArray[1]).first()) return
-			id = bot.emojis.cache.filter(x => x.name == msgArray[1]).first().id
-		} else return
+		id = findEmote(msgArray, message)
+		if(!id) return
 		
 		t = bot.emojis.cache.get(id)
 		
@@ -345,6 +335,54 @@ bot.on("message", message => {
 		//the line above is a bit confusing so:
 		//if the emote exists in the bot's cache, reply with the url
 		//if it cannot access the emote, manually construct a link
+	}
+	
+	if(message.content.startsWith(prefix + "slots")) {
+		if(message.channel.recipient) return
+		tiers = [50,100,150,250]
+		g = bot.guilds.cache.get(message.guild.id)
+		gTier = tiers[g.premiumTier]
+		
+		message.channel.send(`**${g.emojis.cache.size}/${gTier*2} emotes**\n	Static: ${g.emojis.cache.filter(e => !e.animated).size}/${gTier} (${gTier-g.emojis.cache.filter(e => !e.animated).size} free)\n	Animated: ${g.emojis.cache.filter(e => e.animated).size}/${gTier} (${gTier-g.emojis.cache.filter(e => e.animated).size} free)\n**${g.name}** has +${gTier-50} extra emote slots thanks to ${g.premiumSubscriptionCount} boosters`)
+	}
+	
+	if(message.content.startsWith(prefix + "add")) {
+		if(!message.member.hasPermission("MANAGE_EMOJIS")) return
+		if(!msgArray[1]) return
+		
+		//figure out what to fetch
+		target = null
+		if(message.attachments.first()) target = message.attachments.first().url //the first attachment of the message?
+		if(!message.attachments.first()) target = msgArray[2] //a link?
+		
+		nf(target)
+		.then(x => x.buffer())
+		.then(buffer => {if(buffer.length > 256000) return message.reply("Source image is too large!"); message.guild.emojis.create(buffer, msgArray[1]).then(em => {if(!em) return; message.reply("Emote created")})})
+	}
+	
+	if(message.content.startsWith(prefix + "remove")) {
+		if(!message.member.hasPermission("MANAGE_EMOJIS")) return
+		if(!msgArray[1]) return
+		
+		id = findEmote(msgArray, message)
+		e = message.guild.emojis.cache.get(id)
+		if(!e) return
+		
+		e.delete()
+		.then(message.reply("Emote deleted"))
+	}
+	
+	if(message.content.startsWith(prefix + "rename")) {
+		if(!message.member.hasPermission("MANAGE_EMOJIS")) return
+		if(!msgArray[1]) return
+		if(!msgArray[2]) return
+		
+		id = findEmote(msgArray, message)
+		e = message.guild.emojis.cache.get(id)
+		if(!e) return
+		
+		e.setName(msgArray[2])
+		.then(message.reply("Emote renamed"))
 	}
 	
 	//Log channel
@@ -403,7 +441,7 @@ bot.on("messageReactionAdd", async (react) => {
 		emoji: react.emoji.name + " | " + react.emoji.url||react.emoji.name
 	})
 	
-	setTimeout(() => {recent.splice(recent.findIndex(x => x.ts == Date.now()),1)},1500)
+	setTimeout(() => {recent.splice(recent.findIndex(x => x.ts == Date.now()),1)},cfg.recentExpiresAfter)
 	
 	if(!react.emoji.id) return
 	
