@@ -114,7 +114,7 @@ bot.on("message", message => {
 		if(message.content.includes("'")||message.content.includes(";")) return
 		
 		id = findEmote(msgArray, message)
-		if(!id) return
+		if(!id) return message.reply("Couldn't find any emotes")
 		
 		con.query(`SELECT * FROM emotes`, (err,rows) => {
 			sorted = rows.sort(function(a, b) {return a.uses - b.uses})
@@ -137,7 +137,7 @@ bot.on("message", message => {
 		if(message.content.includes("'")||message.content.includes(";")) return
 		
 		id = findEmote(msgArray, message)
-		if(!id) return
+		if(!id) return message.reply("Couldn't find any emotes")
 	
 		message.reply(bot.emojis.cache.get(id).createdAt.toGMTString())
 	}
@@ -310,7 +310,7 @@ bot.on("message", message => {
 		q = msgArray[1]
 		results = msgArray[2] == "-g" ? message.guild.emojis.cache.filter(x => x.name.toLowerCase().includes(q)) : bot.emojis.cache.filter(x => x.name.toLowerCase().includes(q))
 		bot.emojis.cache.filter(x => x.name.toLowerCase().includes(q))
-		if(!results.first()) return
+		if(!results.first()) return message.reply("Nothing found...")
 		arr = results.keyArray()
 		
 		str = "Found some emotes:\n"
@@ -327,7 +327,7 @@ bot.on("message", message => {
 		if(!msgArray[1]) return
 		
 		id = findEmote(msgArray, message)
-		if(!id) return
+		if(!id) return message.reply("Couldn't find any emotes")
 		
 		t = bot.emojis.cache.get(id)
 		
@@ -357,7 +357,7 @@ bot.on("message", message => {
 		
 		nf(target)
 		.then(x => x.buffer())
-		.then(buffer => {if(buffer.length > 256000) return message.reply("Source image is too large!"); message.guild.emojis.create(buffer, msgArray[1]).then(em => {if(!em) return; message.reply("Emote created")})})
+		.then(buffer => {if(buffer.length > 256000) return message.reply("Source image is too large!"); message.guild.emojis.create(buffer, msgArray[1]).then(em => {if(!em) return; message.reply(`Emote <${em.animated ? "a" : ""}:${em.name}:${em.id}> created`)})})
 	}
 	
 	if(message.content.startsWith(prefix + "remove")) {
@@ -382,7 +382,7 @@ bot.on("message", message => {
 		if(!e) return
 		
 		e.setName(msgArray[2])
-		.then(message.reply("Emote renamed"))
+		.then(em => {message.reply(`Emote <${em.animated ? "a" : ""}:${em.name}:${em.id}> renamed`)})
 	}
 	
 	//Log channel
@@ -390,6 +390,7 @@ bot.on("message", message => {
 		if(message.channel.recipient) return //how to check if a message is in a dm in the worst possible way
 		if(!message.member.hasPermission("MANAGE_MESSAGES")) return
 		if(!message.mentions.channels.first()) return con.query(`SELECT * FROM settings WHERE server = '${message.guild.id}'`, (err,rows) => {if(rows.length > 0) {con.query(`DELETE FROM settings WHERE server = '${message.guild.id}'`); message.reply("I will no longer log events in this server.")}})
+		if(!message.guild.channels.cache.get(message.mentions.channels.first().id)) return message.reply("Keep logs in your own server!")
 		
 		con.query(`SELECT * FROM settings WHERE server = '${message.guild.id}'`, (err,rows) => {
 			if(rows.length == 0) con.query(`INSERT INTO settings (server, channel) VALUES ('${message.guild.id}', '${message.mentions.channels.first().id}')`)

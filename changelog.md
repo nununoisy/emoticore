@@ -1,3 +1,7 @@
+# 1.5.1
+- fixed bug that allowed users to set the log channel to another server's channels
+- bot properly responds if no emotes are found
+
 # 1.5
 - emote management commands
 - ++add, ++rename, ++remove
