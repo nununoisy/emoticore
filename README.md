@@ -24,6 +24,7 @@ Emoticore is a bot that helps with tracking emote usage. It also tracks how many
 - recentExpiresAfter - how long it takes for reactions to no longer be considered "recent" in milliseconds
 - owner - the bot owner's id
 - ownerTag - the bot owner's tag
+- helpLink - the link given to the user when running the help command
 - token - the bot's token
 
 # Thanks

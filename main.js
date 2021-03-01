@@ -40,11 +40,7 @@ bot.on("ready", async () => {
 function resolveEmoteTagFromId(id) {
 	emote = bot.emojis.cache.filter(x => x.id == id).first()
 	if(!emote) return "Unavailable Emote"
-	if(!emote.animated) {
-	tag = `<:${emote.name}:${id}>`
-	} else tag = `<a:${emote.name}:${id}>`
-	emote = tag
-	return emote
+	return `<${emote.animated ? "a" : ""}:${emote.name}:${id}>`
 }
 
 function resolveUserFromId(id) {
@@ -169,7 +165,7 @@ bot.on("message", message => {
 	
 	//Help
 	if(message.content.startsWith(prefix + "help")) {
-		message.reply("++uses [emote] to get info about an emote\n++stats [user, leave blank for yourself] to get info about a user\n++leaderboard to check leaderboards\n++random to get a random emote\n++user for a random user\n++search [name] to look for emotes (modifiers: `-g` to only show emotes from this server)")
+		message.reply(`You can view bot help at: ${cfg.helpLink}`)
 	}
 	
 	//Bot info
@@ -337,6 +333,7 @@ bot.on("message", message => {
 		//if it cannot access the emote, manually construct a link
 	}
 	
+	//Guild emote slots
 	if(message.content.startsWith(prefix + "slots")) {
 		if(message.channel.recipient) return
 		tiers = [50,100,150,250]
@@ -346,6 +343,7 @@ bot.on("message", message => {
 		message.channel.send(`**${g.emojis.cache.size}/${gTier*2} emotes**\n	Static: ${g.emojis.cache.filter(e => !e.animated).size}/${gTier} (${gTier-g.emojis.cache.filter(e => !e.animated).size} free)\n	Animated: ${g.emojis.cache.filter(e => e.animated).size}/${gTier} (${gTier-g.emojis.cache.filter(e => e.animated).size} free)\n**${g.name}** has +${gTier-50} extra emote slots thanks to ${g.premiumSubscriptionCount} boosters`)
 	}
 	
+	//Add emote
 	if(message.content.startsWith(prefix + "add")) {
 		if(!message.member.hasPermission("MANAGE_EMOJIS")) return
 		if(!msgArray[1]) return
@@ -360,6 +358,7 @@ bot.on("message", message => {
 		.then(buffer => {if(buffer.length > 256000) return message.reply("Source image is too large!"); message.guild.emojis.create(buffer, msgArray[1]).then(em => {if(!em) return; message.reply(`Emote <${em.animated ? "a" : ""}:${em.name}:${em.id}> created`)})})
 	}
 	
+	//Remove emote
 	if(message.content.startsWith(prefix + "remove")) {
 		if(!message.member.hasPermission("MANAGE_EMOJIS")) return
 		if(!msgArray[1]) return
@@ -372,6 +371,7 @@ bot.on("message", message => {
 		.then(message.reply("Emote deleted"))
 	}
 	
+	//Rename emote
 	if(message.content.startsWith(prefix + "rename")) {
 		if(!message.member.hasPermission("MANAGE_EMOJIS")) return
 		if(!msgArray[1]) return

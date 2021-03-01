@@ -12,5 +12,6 @@
 	"recentExpiresAfter": 1500,
 	"owner": null,
 	"ownerTag": "[BOT OWNER TAG]",
+	"helpLink": "<https://infinitemonitor.github.io/emoticore/>",
 	"token": null
 }

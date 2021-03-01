@@ -1,3 +1,7 @@
+# 1.5.2
+- added helpLink property to config
+- help command now gives a link to the command list page by default
+
 # 1.5.1
 - fixed bug that allowed users to set the log channel to another server's channels
 - bot properly responds if no emotes are found
