@@ -61,8 +61,9 @@ function updateScoreCache(id, score) {
 }
 
 function findEmote(msgArray, message) {
-	if(msgArray[1].startsWith("<:")||msgArray[1].startsWith("<a:") && msgArray[1].endsWith(">")) {
-		id = msgArray[1].slice(-19,-1)
+	let emoteRegexMatches = msgArray[1].match(/^<(a?):([A-Za-z0-9_]+):([0-9]{17,})>$/);
+	if (emoteRegexMatches) {
+		id = emoteRegexMatches[2];
 		
 		if(!id) return
 		if(isNaN(id)) return
@@ -350,8 +351,10 @@ bot.on("message", message => {
 		
 		//figure out what to fetch
 		target = null
-		if(message.attachments.first()) target = message.attachments.first().url //the first attachment of the message?
-		if(!message.attachments.first()) target = msgArray[2] //a link?
+		id = findEmote(msgArray, message);
+		if(id && msgArray[2]) target = `https://cdn.discordapp.com/emojis/${id}.${msgArray[2].startsWith("<a:") ? "gif" : "png"}`; // name and external emote
+		else if(message.attachments.first()) target = message.attachments.first().url //the first attachment of the message?
+		else if(!message.attachments.first()) target = msgArray[2] //a link?
 		
 		nf(target)
 		.then(x => x.buffer())
